@@ -16,3 +16,4 @@
 !/log/.keep
 /tmp
 log
+.ruby-version
