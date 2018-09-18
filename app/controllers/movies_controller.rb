@@ -12,25 +12,44 @@ class MoviesController < ApplicationController
 
   def index
     @all_ratings = Movie.all_ratings
-
+    
+    # Filtering:
     if params.has_key?(:ratings)
-      @ratings = params[:ratings].keys
-      @movies  = Movie.where(rating: @ratings)
+      @ratings = params[:ratings]
+      session[:ratings] = @ratings
+    elsif session.has_key?(:ratings)
+      @ratings = session[:ratings]
     else
-      @ratings = @all_ratings
-      @movies  = Movie.all
+      # Convert the array @all_ratings to a Hash to compare 
+      # with the Hash from param[:ratings]
+      @ratings = Hash[@all_ratings.collect { |k| [k, 1] } ]
     end
 
+    @movies = Movie.where(rating: @ratings.keys)
+
+    # Ordering:
     sort = params[:sort]
     if sort == 'title'
-      @movies = @movies.order(:title)
-      @sorted_by = 'title_header'
-    elsif sort == 'date'
-      @movies = @movies.order(:release_date)
-      @sorted_by = 'release_date_header'
+      @sorted_by = 'title'
+      session[:sorted_by] = @sorted_by
+    elsif sort == 'release_date'
+      @sorted_by = 'release_date'
+      session[:sorted_by] = @sorted_by
     else
-      @sorted_by = nil
+      @sorted_by = session[:sorted_by]
     end
+
+    @movies = @movies.order(@sorted_by)
+
+    # Verify the URI with the Session filter/order for redirect 
+    # to the same URI with correct params.
+    if params[:sort] != session[:sorted_by] || params[:ratings] != session[:ratings]
+      session[:sort]    = @sorted_by
+      session[:ratings] = @ratings
+      flash.keep
+      redirect_to :sort => @sorted_by, :ratings => @ratings and return
+    end
+
   end
 
   def new
